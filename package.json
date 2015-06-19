@@ -1,0 +1,19 @@
+{
+    "name": "TrialUpload",
+    "version": "0.0.1",
+    "private": true,
+    "description": "TrialUpload package.json file",
+    "dependencies": {
+        "express": "~4.9.5",
+        "body-parser": "~1.8.4",
+        "jade": ">=1.1.4",
+        "multer": "0.1.x",
+        "mongoose": "~3.8.0",      
+        "node-png": "0.4.x",
+        "mime": "1.3.x",
+        "fs": "*"
+    },
+    "scripts": {
+        "start": "node bin/app.js"
+    }
+}

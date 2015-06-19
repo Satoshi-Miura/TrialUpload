@@ -1,0 +1,29 @@
+.dwglist
+  if files.length
+    ul
+      for file in files
+        li
+          div
+            a(href= file.url)
+              img(src="data:image/png;base64,#{file.preview}")
+            .fileinfo
+              table.fileinfo
+                tr
+                  th ファイル名：
+                  td 
+                    a(href= file.url)  #{file.name}
+                tr
+                  th 登録日：
+                  td #{file.entryDate}
+                tr
+                  th 登録者：
+                  td #{file.registrant}
+                tr
+                  th サイズ：
+                  td #{file.size} bytes
+                tr
+                  th コメント:
+                  td #{file.description}
+    p.dwglist 保存されているファイルの数は、 #{files.length} です。
+  else
+    p.dwglist 保存されているファイルはありません。

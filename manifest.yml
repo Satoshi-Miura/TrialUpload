@@ -1,0 +1,8 @@
+---
+applications:
+- name: TrialUpload
+  host: TrialUpload
+  memory: 128M
+  instances: 1
+  path: .     
+  command: node bin/app.js

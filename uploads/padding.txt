@@ -1,0 +1,2 @@
+when no file under uploads, the uploads folder is not exists.
+ 
