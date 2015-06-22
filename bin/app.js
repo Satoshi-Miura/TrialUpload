@@ -6,59 +6,18 @@ var app = express();
 var path       = require('path');
 var bodyParser = require('body-parser');
 var multer     = require('multer');
-var mongoose   = require('mongoose');
+//var mongoose   = require('mongoose');
 var mydef      = require('../models/_def');
+var dbresource = require('../models/_mongodb');
+
 
 console.log('(Check)(app) Current directory: ' + process.cwd());
 // パス指定
 mydef.env.dir.root = process.cwd();
 
-// mongoDB　接続. 
-var conn_str = "";
-var vcapenv = process.env.VCAP_SERVICES;
-console.dir(vcapenv);
+// DB接続
+dbresource.proc.connect();
 
-if (vcapenv) {
-    var mongoenv = JSON.parse(vcapenv);
-    //if (mongoenv['mongodb-2.4']) {
-    if (mongoenv['mongolab']) {
-        //var cred = mongoenv['mongodb-2.4'][0]['credentials'];
-        var cred = mongoenv['mongolab'][0]['credentials'];
-        //if (cred.url) {
-        if (cred.uri) {
-            //conn_str = cred.url;
-            conn_str = cred.uri;
-        } else {
-            console.log("No mongo db 2.4 found");
-        }
-    } else {
-        conn_str = 'mongodb://localhost:27017';
-        console.log('mongodb-2.4 in mongoenv was not found.');
-    }
-} else {
-    conn_str = 'mongodb://localhost:27017';
-}
-console.log('conn_str is %s', conn_str);
-
-mongoose.connect(conn_str);
-
-// ドキュメント保存時にフックして処理したいこと
-var fileInfoSchema = require('../models/_mongodb').schema;
-fileInfoSchema.pre('save', function(next) {
-    this.entryDate = new Date();
-    next();
-});
-
-// モデル化: model('[登録名]', '定義したスキーマクラス')
-mongoose.model('FileInfo', fileInfoSchema); 
- 
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-
-db.once('open', function() {
-    console.log("Connected to  database");
-});
-  
 // View engine
 app.set('view engine', 'jade');
 //app.set('views', __dirname + '/views'); // app.jsを/から/binに移動したため変更. 
@@ -79,16 +38,16 @@ app.use(multer({ dest: path.join(mydef.env.dir.root, mydef.env.dir.storefile)}))
 
 // route
 var routes = {
-    index   : require('../routes/index'),
-    upload  : require('../routes/upload'),
-    listfile: require('../routes/listfile'),
-    download: require('../routes/download'),
+    index    : require('../routes/index'),
+    uploads  : require('../routes/' + mydef.env.url.uploads),
+    listfile : require('../routes/listfile'),
+    downloads: require('../routes/' + mydef.env.url.downloads),
 };
 
 app.get('/', routes.index.index);
-app.post('/upload', routes.upload.post);
+app.post('/' + mydef.env.url.uploads, routes.uploads.post);
 app.get('/listfile', routes.listfile.listfile);
-app.get('/download/:id', routes.download.get);
+app.get('/' + mydef.env.url.downloads + '/:id', routes.downloads.get);
 
 app.use ('/api', require('../routes/api'));
 

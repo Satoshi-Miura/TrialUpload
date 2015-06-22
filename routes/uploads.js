@@ -1,7 +1,6 @@
 var fs    = require('fs');
 var path  = require('path');
 var mydef = require('../models/_def');
-//var FileInfoModel = require('../models/_mongodb').model;
 var accessFs = require('../models/_accessfs');
 var accessDb = require('../models/_accessdb');
 
@@ -10,7 +9,7 @@ exports.post = function(req, res) {
     
     // req.files は express3まで 
     //var tmpPath = req.files.thumbnail.path;
-    //var targetPath = './upload/' + req.files.thumbnail.name;
+    //var targetPath = './uploads/' + req.files.thumbnail.name;
     //res.send('tmpPath:' + tmpPath + ',   File uploaded to: ' + targetPath + ' - ' + req.files.thumbnail.size + ' bytes.');
     
     // express4 は multer (http://qiita.com/PianoScoreJP/items/a56e7b3509dcc08cb7e9)
@@ -20,14 +19,14 @@ exports.post = function(req, res) {
     // (TODO) 複数ファイル対応. 
     //tmpPath = req.files.thumbnail.path; // get '../uploads/xxxx’ -> ENOENT 
     tmpPath = path.join(mydef.env.dir.root, path.join(mydef.env.dir.storefile, path.basename(req.files.thumbnail.path)));
-    console.log('tmpPath:' + tmpPath);
+    console.log('(Check)(uploads) tmpPath:' + tmpPath);
     
     var targetDir  = path.join(mydef.env.dir.root, mydef.env.dir.storefile);
     targetPath = path.join(targetDir, req.files.thumbnail.originalname);
     
-    console.log('targetPath:' + targetPath);
+    console.log('(Check)(uploads)targetPath:' + targetPath);
     
-    console.log('req.files.thumbnail.size:' + req.files.thumbnail.size);
+    console.log('(Check)(uploads) req.files.thumbnail.size:' + req.files.thumbnail.size);
     
     var fileSize = 0;
     
@@ -53,7 +52,7 @@ exports.post = function(req, res) {
         
             fs.unlink(tmpPath, function() {
                 if (err) {
-                    console.log('(Err)(upload) fs.unlink is fails... ' + tmpPath);
+                    console.log('(Err)(uploads) fs.unlink is fails... ' + tmpPath);
                     uploadMsg = mydef.env.errmsg.updExecRename + ':' + err.message;
                     return procRenderMain();                
                 }
@@ -74,7 +73,7 @@ exports.post = function(req, res) {
                     }
                     fileSize = statval.size;
                     
-                    if (filesize > mydef.env.mckeep.limitsize) {
+                    if (fileSize > mydef.env.mcdkeep.limitsize) {
                         uploadMsg = mydef.env.errmsg.updLimitOver;
                         // 削除する.
                         fs.unlink(targetPath);
@@ -85,13 +84,13 @@ exports.post = function(req, res) {
                     console.log('(check) fileSize:' + fileSize);
                     
                     // 次の処理. 
-                    procEntryDB();
+                    return procEntryDB();
                 });
             });
         });
     }; // procRenameFile
 
-    // DBにUploadされたファイルの情報を登録する. (dirはrootディレクトリを除くこと)
+    // DBにUploadされたファイルの情報を登録する. 
     // ここは、mcdkeep.place が 'fs','db'どちらでも実行する. 
     var regUser    = 'Bluemix';
     var regComment = 'No comment';
@@ -103,13 +102,26 @@ exports.post = function(req, res) {
         // 
         accessDb.entryFileInfo(targetPath, fileSize, regUser, regComment, function(err) {
             if (err) {
-                console.log('(Err) accessDb.entryFileInfo fails...' + elativeDir + ',' + path.basename(targetPath) );
+                console.log('(Err) accessDb.entryFileInfo fails...' + targetPath );
                 uploadMsg = mydef.env.errmsg.updDbUpdate + ':' + err.message;
                 return procRenderMain();                
             }
-            
-            // 次の処理. 
-            procAddInfoToDB();
+            if (mydef.env.mcdkeep.place === 'db') {
+                accessDb.entryFileData(targetPath, function(err) {
+                
+                    if (err) {
+                        uploadMsg = mydef.env.errmsg.entryFileData + ':' + err.message;
+                        return procRenderMain();                
+                    }
+                    //console.log(results);
+                    console.log('accessDB.entryFileData is done... ');
+                    
+                    // 次の処理. 
+                    return procAddInfoToDB();
+                });
+                // 次の処理. 
+                return procAddInfoToDB();
+            }
         });
     }; // procEntryDB
     
@@ -120,42 +132,27 @@ exports.post = function(req, res) {
         // mcd は　バイナリそのままでfiledataスキーマに格納する.
         // 将来は、mcdからpreviewデータを読出し, node-pngでpngに変換した後にfileinfoスキーマに格納する.
         var extname = path.extname(targetPath).toLowerCase();
-    
+        
+        console.log('(Check)(uploads/procAddInfoToDB) extname:' + extname);
+        
         if (extname === '.mcd') {
+            // comming soon.     
             
-            if (mydef.env.mcdkeep.place === 'db') {
-                
-                accessDb.entryMcd(targetPath, function(err) {
-                
-                    if (err) {
-                        uploadMsg = mydef.env.errmsg.entryMcd + ':' + err.message;
-                        return procRenderMain();                
-                    }
-                    //console.log(results);
-                    console.log('accessDB.entryMcd is done... ');
-                    
-                    // 次の処理. 
-                    procRenderMain();
-                });
-            }
-            else {
-                // 次の処理. 
-                procRenderMain();
-            }
-        }
-        else if (extname === '.png') { // temporary proc
+            return procRenderMain();
+            
+        } else if (extname === '.png') { // temporary proc
             
             accessDb.entryPng(targetPath, function(err) {
                 if (err) {
-                    uploadMsg = mydef.env.errmsg.entryMcd + ':' + err.message;
+                    uploadMsg = mydef.env.errmsg.entryFileData + ':' + err.message;
                 }
             });
             
             // 次の処理. 
-            procRenderMain();
+            return procRenderMain();
         } else {
             // 次の処理. 
-            procRenderMain();
+            return procRenderMain();
         }
     }; // procAddInfoToDB
     

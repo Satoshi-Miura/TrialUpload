@@ -1,5 +1,6 @@
 .dwglist
   if files.length
+    p.dwglist #{files.length} 件
     ul
       for file in files
         li
@@ -11,10 +12,11 @@
                 tr
                   th ファイル名：
                   td 
-                    a(href= file.url)  #{file.name}
+                    a(href= file.url)  #{file.filename}
                 tr
                   th 登録日：
-                  td #{file.entryDate}
+                  - var display = file.entrydate.toLocaleDateString("ja-JP") + file.entrydate.toLocaleTimeString("ja-JP");
+                  td #{display}
                 tr
                   th 登録者：
                   td #{file.registrant}
@@ -24,6 +26,6 @@
                 tr
                   th コメント:
                   td #{file.description}
-    p.dwglist 保存されているファイルの数は、 #{files.length} です。
+    p.dwglist １件目から #{files.length}件目を表示しています。
   else
-    p.dwglist 保存されているファイルはありません。
+    p.dwglist 登録なし。

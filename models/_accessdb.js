@@ -1,31 +1,28 @@
 var fs    = require('fs');
 var path  = require('path');
 var mydef = require('../models/_def');
-var FileInfoModel = require('../models/_mongodb').model;
+var dbresource = require('../models/_mongodb');
 
 
 // 
 // makeListDb
 // 
 var makeListDb = function(dir, callback) {
-        
-    var results = [];
-        
-    console.log('start makeListDB ... dir:' + dir);
+    // callback is function(err, results)
     
-    
+    var results = [];    
     var query = {};
+    console.log('(Check)(_accessdb/makeListDb)start makeListDB ... dir:' + dir);
     
-    if (dir === undefined || dir.length === 0 || dir === '*') {
+    if (!dir || dir === undefined || dir.length === 0 || dir === '*') {
         query = {};
     } else {
         query = {dir: dir};
     }
-    console.log('query:' + query);
-    console.log('query.dir:' + query.dir);
+    console.log('(Check)(_accessdb/makeListDb) query:' + query);
     
-    FileInfoModel.find(query, function(err, docs) {
-       
+    var fileInfoModel = dbresource.model.fileInfo;
+    fileInfoModel.find(query, function(err, docs) {
         if (err) {
             console.log('find occurs err:' + err);
             return callback(err, results);
@@ -38,27 +35,23 @@ var makeListDb = function(dir, callback) {
             doc = docs[i];
             
             console.log('_id        :' + doc._id);
-            //console.log('key        :' + doc.key);
             console.log('dir        :' + doc.dir );
             console.log('name       :' + doc.name );
             console.log('size       :' + doc.size );
             console.log('entryDate  :' + doc.entryDate );
-            //console.log('registrant :' + doc.registrant );
-            //console.log('description:' + doc.description );
-            //console.log('preview    :' + doc.preview );
             
-            var preview = doc.description;
+            var downloadDir = mydef.env.url.downloads; // dont use doc.dir
             var onerec = {
                     filename:    doc.name, 
-                    url:         path.join(doc.dir, doc.name), 
+                    url:         path.join(downloadDir, doc.name), 
                     size:        doc.size,
                     entrydate:   doc.entryDate,
                     registrant:  doc.registrant,
                     description: doc.description,
                     preview:     doc.preview,
-                };
+            };
             
-            if (preview.length === 0) {
+            if (doc.preview === undefined || doc.preview.length === 0) {
                 // use alternative png
                 mydef.getAltPng(function(previewData) {
                     onerec.preview = previewData;
@@ -76,49 +69,173 @@ var makeListDb = function(dir, callback) {
     });
 };
 
-// 
-// entryMcd
-// 
-var entryMcd = function(targetPath, callback) {
-    var readbuf = '';
-    var option = {
-        encoding: 'base64',
-    };
-    var readableStream = fs.createReadStream(targetPath, option);
+
+//
+// Utility - getDbDirFromFilePath
+//
+var getDbDirFromFilePath = function(targetPath) {
+    // input : /home/vcap/app/uploads/xxx/yyy.mcd (include filename)
+    // output: xxx
+    var workDir     = path.dirname(targetPath);         // home/vcap/app/uploads/xxx
+    var uploadDir   = path.join(mydef.env.dir.root, mydef.env.url.uploads); // home/vcap/app/uploads
+    var relativeDir = path.relative(uploadDir, workDir);// xxx
     
-    readableStream.on('data', function(chunk) {
-        readbuf += chunk;
-        console.log('(Check)(upload) chunk(' + chunk.length + ')');
-    });
+    console.log('(Check)(_accessdb/getDbDirFromFilePath)(' + targetPath + ')->(' + relativeDir + ')');
     
-    readableStream.on('end', function() {
-        //var previewData = new Buffer(readbuf, 'binary').toString('base64');
-        var previewData = readbuf;
-        console.log('(Check)(upload) readbuf(' + readbuf.length + ')');
-        readbuf = '';
-        
-        var query = {'$and':[
-            {name: path.basename(targetPath)},
-            {dir : relativeDir},
+    return relativeDir;
+};
+
+
+//
+// Utility - getFileInfoOne
+//
+var getFileInfoOne = function(dir, name, callback) {
+    // callback is function(err, doc)
+
+    var query;
+    if (!dir || dir === undefined || dir.length === 0 || dir === '*') {
+        query = { name: name };
+    } else {
+        query = {'$and':[
+            {dir : dir},
+            {name: name},
         ]};
-        console.log("(Check)(upload) preview update query:" + query);
+    }
+    
+    console.log("(Check)(_accessdb/getFileInfoOne) query:" + query);
+    
+    var fileInfoModel = dbresource.model.fileInfo;
+    fileInfoModel.findOne(query, function(err, doc) {
+        if (err) {
+            console.log('(Err) path(' + dir + ',' + fileName + ') is not found. Err:' + err);
+            return callback(err);
+        }
         
-        FileInfoModel.findOne(query, function(err, doc) {
-            if (err  || doc === null) {
-                console.log('(Err)(_accessdb) Exist record is lost? (path:' + targetPath + ')');
-                return callback(null, new Error(mydef.env.errmsg.dbSelect));
+        console.dir('(Check)findOne ... doc:' + doc);
+        
+        if (doc === null) { // not exist record 
+            return callback(null, null);
+        }
+        return callback(null, doc);
+    });
+};
+
+
+//
+// Utility - getFileDataOne
+//
+var getFileDataOne = function(dir, name, callback) {
+    // callback is function(err, doc)
+
+    getFileInfoOne(dir, name, function(err, doc) {
+        if (err) {
+            return callback(err, null);
+        }
+        var query = {_id: doc.fileDataId};
+        console.log("(Check)(_accessdb/getFileDataOne) filedata query:" + query);
+        
+        var fileDataModel = dbresource.model.fileData;
+        fileDataModel.findOne(query, function(err, doc) {
+            if (err) {
+                console.log('(Err) path(' + dir + ',' + fileName + ') is not found. Err:' + err);
+                return callback(err);
             }
             
-            doc.preview = previewData;
+            console.dir('(Check)(_accessdb/getFileDataOne) filedata - findOne ... doc:' + doc);
             
-            doc.save(function(err) {
-                if (err) {
-                    console.log('(Err) upload .png record is fails... (' + err + ')');
-                    return callback(null, new Error(mydef.env.errmsg.dbUpdate));
-                }
-                // 次の処理. 
-                procRenderMain();
-            });
+            if (doc === null) { // not exist record 
+                return callback(null, null);
+            }
+            return callback(null, doc);
+        });
+    });
+};
+
+
+//
+// entryFileData
+// 
+var entryFileData = function(targetPath, callback) {
+    // callback is function(err)
+    
+    //var extname = path.extname(targetPath).toLowerCase();
+    //console.log('(Check)(uploads/procAddInfoToDB) extname:' + extname);
+    //if (extname === '.mcd' || extname === '.txt') {
+    //    return callback(null);
+    //}
+    
+    fs.readFile(targetPath, function (err, readData) {
+        if (err) {
+            console.log('(Err)(_accessdb/entryFileData) read file is fails... Err:' + err.message);
+            return callback(new Error(mydef.env.errmsg.updExecRead));
+        }
+        
+        console.log('(Check)(_accessdb/entryFileData) read file data(' + readData.length + ')');
+        
+//        var targetDir   = path.dirname(targetPath);
+        var fileName    = path.basename(targetPath);
+//        var relativeDir = path.relative(mydef.env.dir.root, targetDir); // cf. uplods
+        var relativeDir = getDbDirFromFilePath(targetPath);
+
+        // exist record?
+        getFileDataOne(relativeDir, fileName, function(err, dataDoc) {
+            
+            if (err) {
+                console.log('(Err)(_accessdb/entryFileData) Exist FileData record is lost? (path:' + targetPath + ')');
+                return callback(new Error(mydef.env.errmsg.updDbSelect));
+            }
+            
+            if (dataDoc === null) {
+                // create FileData record
+            
+                console.log('Entry new fileData record to db...');
+                    
+                getFileInfoOne(relativeDir, fileName, function(err, infoDoc) {
+                    if (!infoDoc || err) {
+                        console.log('(Err)(_accessdb/entryFileData) Exist FileInfo record is lost? (path:' + targetPath + ')');
+                        return callback(new Error(mydef.env.errmsg.updDbSelect));
+                    }
+                    
+                    // creat
+                    var newData = {
+                        fileInfoId: infoDoc._id,
+                        data: readData,
+                    };
+                    
+                    var fileDataModel = dbresource.model.fileData;
+                    var addFileData = new fileDataModel(newData);
+                    addFileData.save(function(err, dataDoc) {
+                        if (err) {
+                            console.log('(Err) save is err ' + err);
+                            return callback(new Error(mydef.env.errmsg.updDbCreate));
+                        }
+                        console.log('(Check)(_accessdb/entryFileData)result: ' + dataDoc);
+                        
+                        // rewrite fileInfo - fileDataId 
+                        infoDoc.fileDataId = dataDoc._id;
+                        
+                        infoDoc.save(function(err) {
+                            if (err) {
+                                console.log('(Err) update fileinfo-record is fails... (' + err + ')');
+                                return callback(new Error(mydef.env.errmsg.updDbUpdate));
+                            }
+                            return callback(null);
+                        });
+                    });
+                });
+            }
+            else {
+                // write mcd data to fileData record
+                dataDoc.data = readData;
+                
+                dataDoc.save(function(err) {
+                    if (err) {
+                        console.log('(Err) upload .png record is fails... (' + err + ')');
+                        return callback(new Error(mydef.env.errmsg.updDbUpdate));
+                    }
+                    return callback(null);
+                });
+            }
         });
     });
 };
@@ -127,6 +244,8 @@ var entryMcd = function(targetPath, callback) {
 // entryPng
 // 
 var entryPng = function(targetPath, callback) {
+    // callback is function(err)
+    
     var readbuf = '';
     var option = {
         encoding: 'base64',
@@ -144,16 +263,16 @@ var entryPng = function(targetPath, callback) {
         console.log('(Check)(upload) readbuf(' + readbuf.length + ')');
         readbuf = '';
         
-        var query = {'$and':[
-            {name: path.basename(targetPath)},
-            {dir : relativeDir},
-        ]};
-        console.log("(Check)(upload) preview update query:" + query);
-        
-        FileInfoModel.findOne(query, function(err, doc) {
+        // targetPath ... /var/vcap/app/uploads/hoge.mcd
+        //var targetDir   = path.dirname(targetPath);
+        var fileName    = path.basename(targetPath);
+        //var relativeDir = path.relative(mydef.env.dir.root, targetDir); // cf. uplods
+        var relativeDir = getDbDirFromFilePath(targetPath);
+
+        getFileInfoOne(relativeDir, fileName, function(err, doc) {
             if (err  || doc === null) {
-                console.log('(Err)(_accessdb) Exist record is lost? (path:' + targetPath + ')');
-                return callback(null, new Error(mydef.env.errmsg.dbSelect));
+                console.log('(Err)(_accessdb/entryPng) Exist record is lost? (path:' + targetPath + ')');
+                return callback(new Error(mydef.env.errmsg.updDbSelect));
             }
             
             doc.preview = previewData;
@@ -161,10 +280,9 @@ var entryPng = function(targetPath, callback) {
             doc.save(function(err) {
                 if (err) {
                     console.log('(Err) upload .png record is fails... (' + err + ')');
-                    return callback(null, new Error(mydef.env.errmsg.dbUpdate));
+                    return callback(new Error(mydef.env.errmsg.updDbUpdate));
                 }
-                // 次の処理. 
-                procRenderMain();
+                return callback(null);
             });
         });
     });
@@ -174,21 +292,17 @@ var entryPng = function(targetPath, callback) {
 // entryFileInfo
 // 
 var entryFileInfo = function(targetPath, fileSize, regUser, regComment, callback) {
+    // callback is function(err)
 
     // targetPath ... /var/vcap/app/uploads/hoge.mcd
-    var targetDir   = path.dirname(targetPath);
+//    var targetDir   = path.dirname(targetPath);
     var fileName    = path.basename(targetPath);
-    var relativeDir = path.relative(mydef.env.dir.root, targetDir); // cf. uplods
+//    var relativeDir = path.relative(mydef.env.dir.root, targetDir); // cf. uplods
+    var relativeDir = getDbDirFromFilePath(targetPath);
 
     // 既存レコードチェック. 
-    var query = {'$and':[
-        {dir : relativeDir},
-        {name: fileName},
-    ]};
+    getFileInfoOne(relativeDir, fileName, function(err, doc) {
     
-    console.log("(Check)(_accessdb/entryFileInfo)exist check query:" + query);
-    
-    FileInfoModel.findOne(query, function(err, doc) {
         if (err) {
             console.log('(Err) path(' + relativeDir + ',' + fileName + ') is not found. Err:' + err);
             return callback(err);
@@ -209,13 +323,19 @@ var entryFileInfo = function(targetPath, fileSize, regUser, regComment, callback
                 description: regComment,
             };
             
-            var addFileInfo = new FileInfoModel(newData);
+            var fileInfoModel = dbresource.model.fileInfo;
+            
+            console.log('fileInfoModel:' + fileInfoModel);
+            
+            var addFileInfo = new fileInfoModel(newData);
             addFileInfo.save(function(err, result) {
                 if (err) {
                     console.log('(Err) save is err ' + err);
                     return callback(err);
                 }
                 console.log('(Check)(_accessdb/entryFileInfo)result: ' + result);
+                
+                return callback(null);
             });
         } else { // already exist record -> update
             console.log('Update existing record on db...');
@@ -229,14 +349,56 @@ var entryFileInfo = function(targetPath, fileSize, regUser, regComment, callback
                     console.log('(Err)(_accessdb/entryFileInfo)update is failed.(path:' + targetPath + ')');
                     return callback(err);
                 }
+                return callback(null);
             });
         }
     });
 };
 
+//
+// readFileDb
+//
+var readFileDb = function(res, dir, name, callback) {
+    // callback is function(err, filePath)
+    
+    console.log('(Check)(_accessdb/readFileDb) dir:' + dir + ', name:' + name);
+    
+    // Search FileData
+    getFileDataOne(dir, name, function(err, doc) {
+        
+        if (err || doc === null) {
+            console.log('(Err)(_accessdb/readFileDb) Exist filedata-record is lost? (_id:' + fileDataId);
+            return callback(new Error(mydef.env.errmsg.updDbSelect));
+        }
+        
+        var targetDir  = path.join(mydef.env.dir.root, mydef.env.url.uploads);
+        var targetPath = path.join(targetDir, name);
+        
+        console.log('(Check)(_accessdb/readFIleDb) targetPath:' + targetPath);
+        
+        //var wt = fs.createWriteStream(targetPath, {flags: 'wx'}); // EEXIST?
+        var wt = fs.createWriteStream(targetPath);
+        
+        wt.on('error', function(err) {
+            console.log('(Err) createWriteStream: ' + err);
+        });
+        
+        console.log('(Check)(_accessdb/readFIleDb) wt:' + wt);
+        console.log('  -> doc.data.length:' + doc.data.length);
+        
+        wt.write(doc.data);
+        wt.end();
+        
+        wt.on('close', function() {
+            callback(null, targetPath);
+        });
+    });
+};
 
 
 module.exports.makeListDb    = makeListDb;
-module.exports.entryMcd      = entryMcd;
+module.exports.entryFileData = entryFileData;
 module.exports.entryPng      = entryPng;
 module.exports.entryFileInfo = entryFileInfo;
+module.exports.readFileDb    = readFileDb;
+module.exports.getDbDirFromFilePath = getDbDirFromFilePath;

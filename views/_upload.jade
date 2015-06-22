@@ -1,11 +1,18 @@
-form(method="post", enctype="multipart/form-data", action="/upload")
-  input#updfiles(type="file", name="thumbnail", multiple)
-  input(type="submit")
-  div#drophere.drophere  ここに登録したい図面をドロップしてください。
-  div#clientside.
-    <script>
-      // Setup the dnd listeners.
-      var dropZone = document.getElementById('drophere');
-      dropZone.addEventListener('dragover', handleDragOver  , false);
-      dropZone.addEventListener('drop'    , handleFileSelect, false);
-    </script>
+//form(method="post", enctype="multipart/form-data", action="/uploads")
+//  input#updfiles(type="file", name="thumbnail", multiple)
+//  input(type="submit")
+
+#drophere.drophere
+  p ここに登録したい図面をドロップしてください。
+  p または
+  #btn-group
+    input(type="file", multiple)
+    button#uploadbtn ファイルを選択
+
+//  div#clientside.
+//    <script>
+//      // Setup the dnd listeners.
+//      var dropZone = document.getElementById('drophere');
+//      dropZone.addEventListener('dragover', handleDragOver  , false);
+//      dropZone.addEventListener('drop'    , handleFileSelect, false);
+//    </script>

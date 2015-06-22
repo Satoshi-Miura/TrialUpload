@@ -180,3 +180,8 @@ table.fileinfo td {
     text-align: center;
     color: #333;
 }
+
+/* input type-file */
+input[type="file"] {
+  display: none;
+}

@@ -8,8 +8,8 @@ var env = {
         image: './public/images'
     },
     url: {
-        upload: 'upload',
-        download: 'download',
+        uploads: 'uploads',
+        downloads: 'downloads',
     },
     name: {
         altPng: 'mc_pvw_noimg.png',
@@ -22,13 +22,14 @@ var env = {
         updNotFound:    'アップロードファイルがサーバーに存在しません。',
         updLimitOver:   '指定されたファイルは 4Mbytesを超えるためアップロードできません。',
         updNotFile:     '対象がファイルでないためアップロードできません。',
+        updExecRead:    'アップロードされたファイルの読み取りに失敗しました。',
         updExecStat:    'アップロードされたファイルの情報取得に失敗しました。',
         updExecRename:  'アップロードされたファイルの処理に失敗しました。(rename)',
         updDbSelect:    'アップロードされたファイルのDB読取時にエラーが発生しました。',
         updDbCreate:    'アップロードされたファイルのDB登録時にエラーが発生しました。',
         updDbUpdate:    'アップロードされたファイルのDB更新時にエラーが発生しました。',
         makeList:       'リスト作成時にエラーが発生しました。',
-        entryMcd:       '図面ファイルの登録に失敗しました。',
+        entryFileData:  '対象ファイルの登録に失敗しました。',
     }
 };
 
