@@ -1,0 +1,38 @@
+.condition
+  label(for="searchName") ファイル名：
+  input#searchName(size="35",maxlength="30")
+  table#condition
+    tr
+      if files.length
+        - var val1 = ((status.startPage - 1) * status.pageSize) + 1;
+        - var val2 = val1 + files.length - 1;
+        td#dispmsg 該当した #{status.total} 件のうち、 #{val1} 件目から #{val2} 件目を表示しています。
+      else
+        td#dispmsg 該当なし。
+      td#pagejump
+        - var endPage = Math.ceil(status.total / status.pageSize);
+        if ((status.startPage - 1) > 1)
+          a(href="/listfile?startPage=1&pageSize=#{status.pageSize}") &lt;&lt;
+        if ((status.startPage - 1) > 0)
+          - var plt = status.startPage - 1;
+          a(href="/listfile?startPage=#{plt}&pageSize=#{status.pageSize}") &lt;
+        - var minusOne = status.startPage - 1;
+        if (minusOne != 0)
+          a(href="/listfile?startPage=#{minusOne}&pageSize=#{status.pageSize}") #{minusOne}
+        a#pageCurrent(href="/listfile?startPage=#{status.startPage}&pageSize=#{status.pageSize}") #{status.startPage}
+        - var plusOne  = status.startPage + 1;
+        if (plusOne <= endPage)
+          a(href="/listfile?startPage=#{pｌusOne}&pageSize=#{status.pageSize}") #{pluｓOne}
+        if ((endPage - status.startPage) > 0)
+          - var pgt = status.startPage + 1;
+          a(href="/listfile?startPage=#{pgt}&pageSize=#{status.pageSize}") &gt;
+        if ((endPage - status.startPage) > 1)
+          a(href="/listfile?startPage=#{endPage}&pageSize=#{status.pageSize}") &gt;&gt;
+      td#condsort
+        button#sortbtn ソート
+      td#condcategory
+        button#categorybtn カテゴリ
+  span#total(value="#{status.total}")
+  span#pageSize(value="#{status.pageSize}")
+  span#startPage(value="#{status.startPage}")
+  span#endPage(value="#{endPage}")

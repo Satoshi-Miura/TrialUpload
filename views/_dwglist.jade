@@ -1,6 +1,6 @@
 .dwglist
   if files.length
-    p.dwglist #{files.length} 件
+    //p.dwglist #{files.length} 件
     ul
       for file in files
         li
@@ -26,6 +26,8 @@
                 tr
                   th コメント:
                   td #{file.description}
-    p.dwglist １件目から #{files.length}件目を表示しています。
+              p
+                a(href= file.svgurl, target="_blank") [全画面表示]
+    //p.dwglist １件目から #{files.length}件目を表示しています。
   else
     p.dwglist 登録なし。

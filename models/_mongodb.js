@@ -9,6 +9,7 @@ var fileInfoSchema = new mongoose.Schema({
     registrant: String,
     description: String,
     preview: Buffer,
+    svg: Buffer,
     fileDataId: String,
 },{collection: 'fileinfos'});
 

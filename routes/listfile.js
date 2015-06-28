@@ -1,7 +1,8 @@
 //var path     = require('path');
 var mydef    = require('../models/_def');
-var accessFs = require('../models/_accessfs');
-var accessDb = require('../models/_accessdb');
+//var accessFs = require('../models/_accessfs');
+//var accessDb = require('../models/_accessdb');
+var searchDb = require('../models/_searchdb');
 
 exports.listfile = function(req, res) {
     
@@ -10,23 +11,25 @@ exports.listfile = function(req, res) {
     
     var resultMsg   = '';
     
-    var makeList = accessDb.makeListDb;
+//    var makeList = searchDb.makeListDb;
     
-    if (mydef.env.mcdkeep.place === 'fs') {
-        makeList = accessFs.makeListFs;
-    }
+//    if (mydef.env.mcdkeep.place === 'fs') {
+//        makeList = accessFs.makeListFs;
+//    }
 
-    makeList('', function(err, results) {
+    // (accessDb)makeList('', function(err, results) {
+    searchDb.makeListDb(req, function(err, status, results) {
         if (err) {
             resultMsg = mydef.env.errmsg.makeList + ':' + err.message;
         }
         
-        console.log(results);
-        console.log('filelList length is ' + results.length);
+        //console.log(results);
+        console.log('(Check)(listfile)filelList length is ' + results.length);
     
         res.render('main', {
                 title: '- List files -',
                 files: results,
+                status: status,
                 uploadMsg: resultMsg,
             }
         );

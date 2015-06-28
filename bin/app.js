@@ -42,19 +42,21 @@ var routes = {
     uploads  : require('../routes/' + mydef.env.url.uploads),
     listfile : require('../routes/listfile'),
     downloads: require('../routes/' + mydef.env.url.downloads),
+    svg      : require('../routes/' + mydef.env.url.svg),
 };
 
 app.get('/', routes.index.index);
 app.post('/' + mydef.env.url.uploads, routes.uploads.post);
 app.get('/listfile', routes.listfile.listfile);
 app.get('/' + mydef.env.url.downloads + '/:id', routes.downloads.get);
+app.get('/' + mydef.env.url.svg       + '/:id', routes.svg.get);
 
 app.use ('/api', require('../routes/api'));
 
 // prepare default png-data
 mydef.getAltPng(function(previewData) {
-    console.log('mydef.getAltPng');
-    console.dir(previewData);
+    console.log('get pool data (mydef.getAltPng)');
+    //console.dir(previewData);
 });
 
 // listen

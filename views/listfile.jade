@@ -2,8 +2,9 @@ extends layout
 
 block content_dwglist
   include _dwglist
+
+block content_condition
+  include _condition
     
 block content_upload
-  .upload
-    include _upload
-    p#uploadmsg #{uploadMsg}
+  include _upload

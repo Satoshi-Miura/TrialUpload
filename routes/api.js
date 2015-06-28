@@ -2,23 +2,79 @@ var express = require('express');
 var router  = express.Router();
 //var mongoose = require('mongoose');
 var dbresource = require('../models/_mongodb');
-
+var searchDb = require('../models/_searchdb');
 
 //
-// Select all fileinfo record 
-// (GET) /api/fileinfo 
+// Select all name for auto-complete 
+// (GET) /api/v1/name 
 //
-router.route('/fileinfo').get(function(req, res) {
+router.route('/v1/name').get(function(req, res) {
     
-    console.log('(GET) /api/fileinfo');
-
-    var fileInfoModel = dbresource.model.fileInfo;
-    fileInfoModel.find({}, function(err, docs) {
+    console.log('(GET) /api/v1/name?term=hoge');
+    
+    var term = '';
+    if (req.query !== undefined && req.query.term) term = req.query.term;
+    
+    console.log('(Check)(api/v1/name) term:\'' + term + '\'');
+    
+    var altParams = {};
+    altParams.query = {};
+    altParams.query.name = term;
+    altParams.query.fields     = 'name';
+    altParams.query.startPage  = 1;
+    altParams.query.pageSize   = 10; // ok?
+    // option 
+    altParams.query.ignoreCase = true;
+    altParams.query.nameIsWild = true;
+    
+    // set query parameters from request query parameters
+    var qparams = searchDb.setQueryFileInfoFromReq(altParams);
+    var results = [];
+    
+    // search
+    searchDb.searchFileInfo(qparams, function(err, status, docs) {
 
         if (err) {
             console.log('err:' + err);
             return res.send(err);
         }
+        
+        for (var i = 0, size = docs.length; i < size; ++i) {
+            var onerec = {};
+            onerec.value = docs[i].name;
+            onerec.label = docs[i].name;
+            
+            results.push(onerec);
+        }
+        
+        var root = { results: results };
+        console.log('(Check)(api/v1/name:');
+        console.log(root);
+        
+        res.jsonp(root);   // use jsonp
+    });
+});
+
+
+//
+// Select all fileinfo record 
+// (GET) /api/v1/fileinfo 
+//
+router.route('/v1/fileinfo').get(function(req, res) {
+    
+    console.log('(GET) /api/fileinfo');
+
+    // set query parameters from request query parameters
+    var qparams = searchDb.setQueryFileInfoFromReq(req);
+    
+    // search
+    searchDb.searchFileInfo(qparams, function(err, status, docs) {
+
+        if (err) {
+            console.log('err:' + err);
+            return res.send(err);
+        }
+        
         console.dir('docs:' + docs);
         
         res.json(docs);
@@ -28,14 +84,21 @@ router.route('/fileinfo').get(function(req, res) {
 
 //
 // Select all filedata record 
-// (GET) /api/filedata 
+// (GET) /api/v1/filedata 
 //
-router.route('/filedata').get(function(req, res) {
+router.route('/v1/filedata').get(function(req, res) {
     
     console.log('(GET) /api/filedata');
-
+    
+    // (TODO) queryによる検索強化. 
+    //   ?fields=name,dir, ... 
+    //   ?pageNumber=1
+    //   ?pageSize=10
+    //   ?sort=name,entryDate, ... 
+    var query = {};
+    
     var fileDataModel = dbresource.model.fileData;
-    fileDataModel.find({}, function(err, docs) {
+    fileDataModel.find(query, function(err, docs) {
 
         if (err) {
             console.log('err:' + err);
@@ -54,9 +117,9 @@ router.route('/filedata').get(function(req, res) {
 
 //
 // Select fileinfo-record by _id
-// (GET) /api/fileinfo/(id) 
+// (GET) /api/v1/fileinfo/(id) 
 //
-router.route('/fileinfo/:id').get(function(req, res) {
+router.route('/v1/fileinfo/:id').get(function(req, res) {
     
     console.log('(GET) /api/fileinfo/(id)');
 
@@ -73,9 +136,9 @@ router.route('/fileinfo/:id').get(function(req, res) {
 
 //
 // Select filedata-record by _id
-// (GET) /api/filedata/(id) 
+// (GET) /api/v1/filedata/(id) 
 //
-router.route('/filedata/:id').get(function(req, res) {
+router.route('/v1/filedata/:id').get(function(req, res) {
     
     console.log('(GET) /api/filedata/(id)');
 
@@ -95,9 +158,9 @@ router.route('/filedata/:id').get(function(req, res) {
 
 //
 // Create record 
-// (POST) /api/fileinfo + req.body
+// (POST) /api/v1/fileinfo + req.body
 //
-router.route('/fileinfo').post(function(req, res) {
+router.route('/v1/fileinfo').post(function(req, res) {
 
     console.log('(POST) /api/fileinfo & body');
 
@@ -115,9 +178,9 @@ router.route('/fileinfo').post(function(req, res) {
 
 //
 // Update record by _id
-// (PUT) /api/fileinfo/(id) 
+// (PUT) /api/v1/fileinfo/(id) 
 //
-router.route('/fileinfo/:id').put(function(req,res){
+router.route('/v1/fileinfo/:id').put(function(req,res){
 
     console.log('(PUT) /api/fileinfo/(id)');
     console.log('req.params.id:' + req.params.id);
@@ -176,9 +239,9 @@ router.route('/fileinfo/:id').put(function(req,res){
 
 //
 // Delete record 
-// (DELETE) /api/fileinfo/(id) 
+// (DELETE) /api/v1/fileinfo/(id) 
 //
-router.route('/fileinfo/:id').delete(function(req, res) {
+router.route('/v1/fileinfo/:id').delete(function(req, res) {
 
     console.log('(DELETE) /api/fileinfo/(id)');
     var message = '';

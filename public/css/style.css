@@ -89,15 +89,28 @@ section{
 }
 
 article{
-	width:910px;
+	width:930px;
 	background-color:#6CC;
 	color:#333;
 	font-weight:bold;
 	margin:0 10px 10px 10px;
 }
-artile.dwglist{
-    min-height: 200px;
+
+article.dwglist{
+    min-height: 210px;
+    max-height: 420px;
+    overflow: auto;
 }
+
+article.svgview {
+    min-height: 200px;
+    width: auto;
+}
+
+article.svgview img {
+    width: 100%;
+}
+
 article.upload{
     height:auto;
 }
@@ -150,7 +163,7 @@ footer{
   height: 45px;
   color: #33C;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 12px;
 }
 .dwglist img {
     padding: 10px;
@@ -158,10 +171,17 @@ footer{
 div.fileinfo {
     float:right;
 }
+div.fileinfo p {
+    text-align: center;
+}
+div.fileinfo a {
+    text-decoration: none;
+}
 table.fileinfo {
     line-height: initial;
+    line-height: 1.2em;
     margin: initial;
-    margin: 10px;
+    margin: 10px 10px 0 0;
     border-collapse:collapse;
     border-spacing: 0px;
 }
@@ -169,6 +189,39 @@ table.fileinfo td {
     width: 130px;
     padding-left: 5px;
     word-break: break-all;
+}
+
+/* condition */
+table#condition {
+    width: 100%;
+}
+
+td#dispmsg {
+    min-width:200px;
+}
+
+td#pagejump {
+    min-width:150px;
+}
+
+td#pagejump a {
+    margin-left:20px;
+    text-decoration: none;
+    color:black;
+}
+
+a#pageCurrent {
+    background-color: #ccc;
+}
+
+td#pagejump a:hover {
+    background-color: #33C;
+}
+
+td#condsort, td#condcategory {
+    min-width:50px;
+    max-width:60px;
+    padding: 0;
 }
 
 /* Drop area of file */

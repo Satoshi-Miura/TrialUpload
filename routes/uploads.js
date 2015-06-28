@@ -1,8 +1,9 @@
 var fs    = require('fs');
 var path  = require('path');
 var mydef = require('../models/_def');
-var accessFs = require('../models/_accessfs');
+//var accessFs = require('../models/_accessfs');
 var accessDb = require('../models/_accessdb');
+//var searchDb = require('../models/_searchdb');
 
 
 exports.post = function(req, res) {
@@ -25,12 +26,10 @@ exports.post = function(req, res) {
     targetPath = path.join(targetDir, req.files.thumbnail.originalname);
     
     console.log('(Check)(uploads)targetPath:' + targetPath);
-    
     console.log('(Check)(uploads) req.files.thumbnail.size:' + req.files.thumbnail.size);
     
     var fileSize = 0;
-    
-    var uploadMsg;
+    var uploadMsg = '';
     
     // upload有無. 
     var bFound = fs.existsSync(tmpPath);
@@ -48,40 +47,51 @@ exports.post = function(req, res) {
                 return procRenderMain();                
             }
             
-            console.log('(Check) rename is done.');
+            console.log('(Check)(upload) rename is done.');
         
-            fs.unlink(tmpPath, function() {
-                if (err) {
+            fs.unlink(tmpPath, function() { // (TODO) renameなので不要. 
+                if (err) { // (TODO) errは拾っていない. 
                     console.log('(Err)(uploads) fs.unlink is fails... ' + tmpPath);
                     uploadMsg = mydef.env.errmsg.updExecRename + ':' + err.message;
                     return procRenderMain();                
                 }
-                uploadMsg = '対象ファイル('+ targetPath + ', ' + req.files.thumbnail.size + ' バイト)を登録しました。';
                 
-                console.log('(Check) start statSync...');
+                if (mydef.env.mcdkeep.place === 'fs') {
+                    uploadMsg = '対象ファイル('+ path.basename(targetPath) + ')(' + req.files.thumbnail.size + ' バイト)を登録しました。';
+                }
+                
+                console.log('(Check)(upload) start statSync...');
                 
                 fs.stat(targetPath, function(err, statval) {
+                    
+                    console.log('(Check)(upload/procRenameFile/stat) #1');
+                    
                     if (err) {
                         console.log('(Err) statSync is fails ... (' + targetPath + ')');
                         uploadMsg = mydef.env.errmsg.updExecStat + ':' + err.message;
                         return procRenderMain();
                     }
+                    
+                    console.log('(Check)(upload/procRenameFile/stat) #2');
+                    
                     if (!(statval.isFile())) {
                         console.log('(Err) Upload is not regular file. (' + targetPath + ')');
                         uploadMsg = mydef.env.errmsg.updNotFile;
                         return procRenderMain();
                     }
                     fileSize = statval.size;
+                    console.log('(Check)(upload) fileSize:' + fileSize);
                     
                     if (fileSize > mydef.env.mcdkeep.limitsize) {
                         uploadMsg = mydef.env.errmsg.updLimitOver;
+                        console.log('(Check)(upload) ' + uploadMsg);
                         // 削除する.
                         fs.unlink(targetPath);
                         
                         return procRenderMain();
                     }
                     
-                    console.log('(check) fileSize:' + fileSize);
+                    console.log('(check)(upload/procRenameFile) fileSize:' + fileSize);
                     
                     // 次の処理. 
                     return procEntryDB();
@@ -97,7 +107,7 @@ exports.post = function(req, res) {
     
     var procEntryDB = function() {
     
-        console.log('(Check) start entry record to db...');
+        console.log('(Check)(upload) start entry record to db...');
         
         // 
         accessDb.entryFileInfo(targetPath, fileSize, regUser, regComment, function(err) {
@@ -115,6 +125,7 @@ exports.post = function(req, res) {
                     }
                     //console.log(results);
                     console.log('accessDB.entryFileData is done... ');
+                    uploadMsg = '対象ファイル('+ path.basename(targetPath) + ')(' + req.files.thumbnail.size + ' バイト)を登録しました。';
                     
                     // 次の処理. 
                     return procAddInfoToDB();
@@ -135,21 +146,18 @@ exports.post = function(req, res) {
         
         console.log('(Check)(uploads/procAddInfoToDB) extname:' + extname);
         
-        if (extname === '.mcd') {
-            // comming soon.     
-            
-            return procRenderMain();
-            
-        } else if (extname === '.png') { // temporary proc
+        if (extname === '.mcd' || extname === '.png') {
             
             accessDb.entryPng(targetPath, function(err) {
                 if (err) {
                     uploadMsg = mydef.env.errmsg.entryFileData + ':' + err.message;
                 }
+                
+                console.log('(Check)(_uploads) #156');
+                
+                // 次の処理. 
+                return procRenderMain();
             });
-            
-            // 次の処理. 
-            return procRenderMain();
         } else {
             // 次の処理. 
             return procRenderMain();
@@ -157,13 +165,24 @@ exports.post = function(req, res) {
     }; // procAddInfoToDB
     
     // 
-    var procRenderMain = function() {    
+    var procRenderMain = function() {
+        
+        console.log('(Check) procRenderMain starts...');
+        
+        // uploadは、Ajaxで処理するため、画面遷移は発生しない。代わりにAjaxに渡すメッセージを送る. 
+        res.end(uploadMsg);
+        
+        console.log('(Check)(uploads/procRenderMain) res.send(' + uploadMsg + ')');
+        
+/*
         // ファイルリスト作成.
         var makeList = accessDb.makeListDb;
         
         if (mydef.env.mcdkeep.place === 'fs') {
             makeList = accessFs.makeListFs;
         }
+        
+        console.log('(Check)(upload) start procRenderMain');
         
         makeList('', function(err, results) {
                 
@@ -172,20 +191,44 @@ exports.post = function(req, res) {
                 return procRenderMain();                
             }
             //console.log(results);
-            console.log('makeList is done... filelList length is ' + results.length);
+            console.log('(Check)(upload)makeList is done... filelList length is ' + results.length);
             
             res.render('main', {
                     title: '- Upload files -',
                     files: results,
+                    status: status,
                     uploadMsg: uploadMsg,
                     }
             );
         });
+*/
     };
+    
     
     // 逐次処理 procRenameFile() -> procEntryDB() -> procAddInfoToDB() -> procRenderMain()
     if (bFound) {
-        procRenameFile();
+        var extname = path.extname(targetPath).toLowerCase();
+        console.log('(Check)(uploads/procAddInfoToDB) extname:' + extname);
+        if (extname === '.svg') {
+            fs.rename(tmpPath, targetPath, function(err) {
+                if (err) {
+                    console.log('(Err) fs.rename is fails... (' + tmpPath + ' -> ' + targetPath + ')');
+                    return procRenderMain();                
+                }
+                
+                accessDb.entrySvg(targetPath, function(err) {
+                    uploadMsg = 'SVGデータをMCDに紐づけました。';
+                    if (err) {
+                        uploadMsg = 'SVGデータをMCDに紐づけ時にエラー:' + err.message;
+                    }
+                    // 次の処理. 
+                    return procRenderMain();
+                });
+            });
+        }
+        else {
+            procRenameFile();
+        }
     }
     else {
         uploadMsg = mydef.env.errmsg.updNotFound;

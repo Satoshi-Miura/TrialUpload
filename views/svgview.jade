@@ -1,0 +1,14 @@
+doctype html
+html
+  head
+    include _head
+  body
+    #wrapper
+      include _navi
+      section
+        article.svgview
+          if file
+            a(href= file.url)
+              img(src="data:image/svg+xml;base64,#{file.svg}",alt="#{file.filname}")
+          else
+              p #{msg}
