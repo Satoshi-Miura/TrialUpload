@@ -211,7 +211,7 @@ td#pagejump a {
 }
 
 a#pageCurrent {
-    background-color: #ccc;
+    background-color: #CCC;
 }
 
 td#pagejump a:hover {
@@ -219,8 +219,8 @@ td#pagejump a:hover {
 }
 
 td#condsort, td#condcategory {
-    min-width:50px;
-    max-width:60px;
+    min-width: 50px;
+    max-width: 60px;
     padding: 0;
 }
 

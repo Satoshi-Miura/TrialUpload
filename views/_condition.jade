@@ -22,7 +22,7 @@
         a#pageCurrent(href="/listfile?startPage=#{status.startPage}&pageSize=#{status.pageSize}") #{status.startPage}
         - var plusOne  = status.startPage + 1;
         if (plusOne <= endPage)
-          a(href="/listfile?startPage=#{pｌusOne}&pageSize=#{status.pageSize}") #{pluｓOne}
+          a(href="/listfile?startPage=#{plusOne}&pageSize=#{status.pageSize}") #{pluｓOne}
         if ((endPage - status.startPage) > 0)
           - var pgt = status.startPage + 1;
           a(href="/listfile?startPage=#{pgt}&pageSize=#{status.pageSize}") &gt;
