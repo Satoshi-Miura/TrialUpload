@@ -24,7 +24,7 @@ var env = {
         limitsize: 81920,  // limit 80Kbytes (Original 4MBytes)
     },
     list: {
-        defaultPageSize: 2,
+        defaultPageSize: 6,
         maxPageSize: 100,
     },
     errmsg: {
