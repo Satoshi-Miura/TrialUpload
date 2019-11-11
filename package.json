@@ -10,7 +10,7 @@
         "multer": "0.1.x",
         "mongoose": "~3.8.0",      
         "node-png": "0.4.x",
-        "mime": "1.3.x",
+        "mime": "2.4.x",
         "fs": "*",
         "clone": "1.0.x"
     },
