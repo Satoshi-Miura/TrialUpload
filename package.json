@@ -8,7 +8,7 @@
         "body-parser": "~1.8.4",
         "jade": ">=1.1.4",
         "multer": "0.1.x",
-        "mongoose": "~3.8.0",      
+        "mongoose": "~5.7.9",      
         "node-png": "0.4.x",
         "mime": ">=1.4.1",
         "fs": "*",
