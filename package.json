@@ -4,7 +4,7 @@
     "private": true,
     "description": "TrialUpload package.json file",
     "dependencies": {
-        "express": "~4.9.5",
+        "express": "~4.17.3",
         "body-parser": "~1.8.4",
         "jade": ">=1.1.4",
         "multer": "0.1.x",
